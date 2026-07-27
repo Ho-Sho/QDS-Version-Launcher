@@ -1,0 +1,14 @@
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\bin\Release\net8.0-windows\QDSVersionLauncher.exe
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\bin\Release\net8.0-windows\QDSVersionLauncher.deps.json
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\bin\Release\net8.0-windows\QDSVersionLauncher.runtimeconfig.json
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\bin\Release\net8.0-windows\QDSVersionLauncher.dll
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\bin\Release\net8.0-windows\QDSVersionLauncher.pdb
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\obj\Release\net8.0-windows\QDSVersionLauncher.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\obj\Release\net8.0-windows\QDSVersionLauncher.AssemblyInfoInputs.cache
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\obj\Release\net8.0-windows\QDSVersionLauncher.AssemblyInfo.cs
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\obj\Release\net8.0-windows\QDSVersionLauncher.csproj.CoreCompileInputs.cache
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\obj\Release\net8.0-windows\QDSVersionLauncher.dll
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\obj\Release\net8.0-windows\refint\QDSVersionLauncher.dll
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\obj\Release\net8.0-windows\QDSVersionLauncher.pdb
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\obj\Release\net8.0-windows\QDSVersionLauncher.genruntimeconfig.cache
+C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\obj\Release\net8.0-windows\ref\QDSVersionLauncher.dll

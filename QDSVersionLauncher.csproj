@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyTitle>QDS Version Launcher</AssemblyTitle>
+    <Product>QDS Version Launcher</Product>
+    <RootNamespace>QDSVersionLauncher</RootNamespace>
+    <AssemblyName>QDSVersionLauncher</AssemblyName>
+    <ApplicationIcon>qdv.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- For the portable, self contained single file build, run publish.bat
+         (see README.md for the full dotnet publish command it wraps). -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="qdv.ico" />
+  </ItemGroup>
+
+</Project>
