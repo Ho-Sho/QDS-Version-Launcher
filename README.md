@@ -174,7 +174,7 @@ If you want to register the executable directly after building without using `re
 
 ```powershell
 & "$env:USERPROFILE\Desktop\QDSVersionLauncher\bin\Release\net8.0-windows\QDS Version Launcher.exe" --register-association
-
+```
 
 ## License & Credits
 - **Author / Concept:** Created by Shogo Hori (assisted by AI collaboration).
