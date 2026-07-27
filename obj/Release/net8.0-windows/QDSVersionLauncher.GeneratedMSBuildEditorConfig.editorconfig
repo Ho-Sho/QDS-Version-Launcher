@@ -14,6 +14,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = QDSVersionLauncher
-build_property.ProjectDir = C:\Users\hori_s\Desktop\qsys\QDS_Version_Launcher\
+build_property.ProjectDir = C:\Users\hori_s\Desktop\Q-SYS関係\QDS_Version_Launcher\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 

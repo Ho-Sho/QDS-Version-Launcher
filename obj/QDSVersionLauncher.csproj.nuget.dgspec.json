@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\hori_s\\Desktop\\qsys\\QDS_Version_Launcher\\QDSVersionLauncher.csproj": {}
+    "C:\\Users\\hori_s\\Desktop\\Q-SYS関係\\QDS_Version_Launcher\\QDSVersionLauncher.csproj": {}
   },
   "projects": {
-    "C:\\Users\\hori_s\\Desktop\\qsys\\QDS_Version_Launcher\\QDSVersionLauncher.csproj": {
+    "C:\\Users\\hori_s\\Desktop\\Q-SYS関係\\QDS_Version_Launcher\\QDSVersionLauncher.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\hori_s\\Desktop\\qsys\\QDS_Version_Launcher\\QDSVersionLauncher.csproj",
+        "projectUniqueName": "C:\\Users\\hori_s\\Desktop\\Q-SYS関係\\QDS_Version_Launcher\\QDSVersionLauncher.csproj",
         "projectName": "QDSVersionLauncher",
-        "projectPath": "C:\\Users\\hori_s\\Desktop\\qsys\\QDS_Version_Launcher\\QDSVersionLauncher.csproj",
+        "projectPath": "C:\\Users\\hori_s\\Desktop\\Q-SYS関係\\QDS_Version_Launcher\\QDSVersionLauncher.csproj",
         "packagesPath": "C:\\Users\\hori_s\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\hori_s\\Desktop\\qsys\\QDS_Version_Launcher\\obj\\",
+        "outputPath": "C:\\Users\\hori_s\\Desktop\\Q-SYS関係\\QDS_Version_Launcher\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\hori_s\\AppData\\Roaming\\NuGet\\NuGet.Config"

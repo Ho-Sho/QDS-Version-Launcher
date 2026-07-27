@@ -27,18 +27,23 @@ namespace QDSVersionLauncher
 
         private void BuildUi()
         {
+            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleDimensions = new SizeF(96f, 96f);
             Text = "Manage Search Folders";
             StartPosition = FormStartPosition.CenterParent;
-            Width = 460;
-            Height = 340;
-            MinimumSize = new Size(360, 260);
+            
+            // Narrowed the default and minimum width for a more compact look
+            Width = 420;
+            Height = 360;
+            MinimumSize = new Size(300, 300);
 
             var hint = new Label
             {
                 Dock = DockStyle.Top,
-                Height = 44,
-                Padding = new Padding(12, 8, 12, 0),
-                Text = "These folders are scanned for Designer installs, in addition to the default QDS install locations."
+                AutoSize = true,
+                Padding = new Padding(12, 8, 12, 4),
+                Text = "These folders are scanned for Designer installs,\n" + 
+                       "in addition to the default QDS install locations."
             };
 
             _listBox = new ListBox
@@ -49,10 +54,20 @@ namespace QDSVersionLauncher
             };
             _listBox.SelectedIndexChanged += (s, e) => UpdateRemoveEnabled();
 
-            var buttonPanel = new Panel { Dock = DockStyle.Bottom, Height = 48 };
-            _btnAdd = new Button { Text = "Add...", Width = 90 };
-            _btnRemove = new Button { Text = "Remove", Width = 90 };
-            _btnClose = new Button { Text = "Close", Width = 90 };
+            var buttonPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Padding = new Padding(12, 8, 12, 12)
+            };
+
+            // Adjusted margins to bring Remove and Close closer together cleanly
+            _btnAdd = new Button { Text = "Add...", AutoSize = true, Margin = new Padding(0, 0, 8, 0) };
+            _btnRemove = new Button { Text = "Remove", AutoSize = true, Margin = new Padding(0, 0, 16, 0) };
+            _btnClose = new Button { Text = "Close", AutoSize = true };
 
             _btnAdd.Click += (s, e) => AddFolder();
             _btnRemove.Click += (s, e) => RemoveSelected();
@@ -62,30 +77,12 @@ namespace QDSVersionLauncher
             buttonPanel.Controls.Add(_btnRemove);
             buttonPanel.Controls.Add(_btnClose);
 
-            void LayoutButtons(object sender, EventArgs e)
-            {
-                const int margin = 12;
-                const int gap = 8;
-                int right = buttonPanel.ClientSize.Width - margin;
-
-                _btnClose.Location = new Point(right - _btnClose.Width, 8);
-                right -= _btnClose.Width + gap;
-
-                _btnRemove.Location = new Point(right - _btnRemove.Width, 8);
-
-                _btnAdd.Location = new Point(margin, 8);
-            }
-            buttonPanel.Resize += LayoutButtons;
-
             CancelButton = _btnClose;
 
-            // Same Fill -> Bottom -> Top add order as MainForm (WinForms
-            // docks in reverse of add order).
+            // Add in reverse dock order: Fill -> Bottom -> Top
             Controls.Add(_listBox);
             Controls.Add(buttonPanel);
             Controls.Add(hint);
-
-            LayoutButtons(this, EventArgs.Empty);
         }
 
         private void PopulateList()
@@ -93,7 +90,6 @@ namespace QDSVersionLauncher
             _listBox.Items.Clear();
             foreach (var path in _settings.CustomScanPaths)
                 _listBox.Items.Add(path);
-
             UpdateRemoveEnabled();
         }
 
@@ -106,7 +102,6 @@ namespace QDSVersionLauncher
             {
                 Description = "Select a folder that contains a Q-SYS Designer installation"
             };
-
             if (dialog.ShowDialog(this) != DialogResult.OK)
                 return;
 
@@ -122,7 +117,6 @@ namespace QDSVersionLauncher
         {
             if (_listBox.SelectedItem is not string path)
                 return;
-
             _settings.CustomScanPaths.Remove(path);
             _settings.Save();
             PopulateList();
