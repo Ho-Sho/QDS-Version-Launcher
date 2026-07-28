@@ -31,15 +31,22 @@ sample.qsys
   locations.
 - **Shows every version found**, even 10+, in a scrollable list.
 - **Most recently used version is starred and pinned to the top.**
-- **Ctrl (or Shift) + double-click forces the picker to appear.** Normally,
-  if this exact project was opened with a specific version before,
+- **Configurable shortcut for forcing the picker to appear.** Normally, if
+  this exact project was opened with a specific version before,
   double-clicking it again launches straight into that version with no
-  dialog. Holding **Ctrl** while double-clicking skips that shortcut and
-  always shows the picker, so you can deliberately choose a different
-  version. Shift is checked too, but **Ctrl is the one to rely on** —
-  Windows Explorer itself uses Shift+click for extending a file selection,
-  so a Shift-held double-click can get eaten by that before it ever reaches
+  dialog. The picker has a **"Show picker on:"** section where you choose
+  what forces it open instead: **Always**, **Ctrl is held**, **Shift is
+  held**, or **Ctrl + Shift are held**. The choice saves the moment you
+  pick it. Default is **Ctrl**, and it's the one to rely on — Windows
+  Explorer itself uses Shift+click for extending a file selection, so a
+  Shift-held double-click can get eaten by that before it ever reaches
   this app.
+- **Pin a project to always skip the picker.** An "Always use this version
+  for this project" checkbox in the picker overrides the mode above on a
+  per-project basis — check it and click Open to make that project always
+  launch straight into the selected version, even in **Always** mode.
+  Holding Ctrl or Shift still forces the picker open so the pin can be
+  changed later.
 - **Portable.** Builds to a single, self-contained `.exe` — no installer,
   no separate .NET runtime to install, safe to run from a USB stick.
 - **Manage extra scan folders.** The **Manage Folders...** button opens a
@@ -77,22 +84,24 @@ Stored as `settings.json`, either next to the EXE (portable mode, used
 whenever that folder is writable) or under
 `%AppData%\QDSVersionLauncher\settings.json` as a fallback (e.g. if the EXE
 lives in `Program Files`). It holds your custom scan paths, the known-LTS
-list, per-project remembered versions, the most-recently-used list, and the
-"Suppress plugin folder" checkbox state — feel free to hand-edit it if
-needed.
+list, per-project remembered versions, which projects are pinned to skip
+the picker, the most-recently-used list, the "Suppress plugin folder"
+checkbox state, and the "Show picker on" mode — feel free to hand-edit it
+if needed.
 
 Stale per-project entries are cleaned up automatically: right before the
 picker is shown (never on the fast, no-dialog launch path), the launcher
-checks — at most once every 7 days — whether each remembered project file
-still exists, and drops the entries whose file is gone. Entries on a
-network path are left alone rather than checked, since an unreachable share
-could otherwise make the check hang.
+checks — at most once every 7 days — whether each remembered or pinned
+project file still exists, and drops the entries whose file is gone.
+Entries on a network path are left alone rather than checked, since an
+unreachable share could otherwise make the check hang.
 
 ## Known limitations
 
-- Shift is checked as an alternative to Ctrl for forcing the picker, but
-  isn't reliable — Windows Explorer reserves Shift+click for extending a
-  file selection, so it can be consumed by Explorer before this app ever
+- Shift is offered as a mode alternative to Ctrl for forcing the picker,
+  but isn't reliable — Windows Explorer reserves Shift+click for extending
+  a file selection, so it can be consumed by Explorer before this app ever
   sees it. Use Ctrl.
-- The keyboard-state detection reads live key state the instant the process
-  starts, so releasing the key unusually fast could occasionally be missed.
+- Whichever modifier-key mode you pick, detection reads live key state the
+  instant the process starts, so releasing the key unusually fast could
+  occasionally be missed. (Doesn't apply to the Always mode.)

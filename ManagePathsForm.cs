@@ -1,15 +1,10 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace QDSVersionLauncher
 {
-    /// <summary>
-    /// Small dialog for viewing, adding, and removing the extra folders
-    /// DesignerScanner scans in addition to the default QDS locations
-    /// (Settings.CustomScanPaths). Edits the list in place and saves
-    /// immediately on each change; MainForm re-scans after this closes.
-    /// </summary>
     public class ManagePathsForm : Form
     {
         private readonly Settings _settings;
@@ -30,12 +25,14 @@ namespace QDSVersionLauncher
             AutoScaleMode = AutoScaleMode.Dpi;
             AutoScaleDimensions = new SizeF(96f, 96f);
             Text = "Manage Search Folders";
-            StartPosition = FormStartPosition.CenterParent;
             
-            // Narrowed the default and minimum width for a more compact look
-            Width = 420;
+            Icon appIcon = TryLoadIcon();
+            if (appIcon != null)
+                Icon = appIcon;
+
+            Width = 380;
             Height = 360;
-            MinimumSize = new Size(300, 300);
+            MinimumSize = new Size(340, 300);
 
             var hint = new Label
             {
@@ -61,13 +58,37 @@ namespace QDSVersionLauncher
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Padding = new Padding(12, 8, 12, 12)
+                Padding = new Padding(12, 8, 12, 12),
             };
 
-            // Adjusted margins to bring Remove and Close closer together cleanly
-            _btnAdd = new Button { Text = "Add...", AutoSize = true, Margin = new Padding(0, 0, 8, 0) };
-            _btnRemove = new Button { Text = "Remove", AutoSize = true, Margin = new Padding(0, 0, 16, 0) };
-            _btnClose = new Button { Text = "Close", AutoSize = true };
+            // Explicitly set Width and Height to ensure perfect alignment across all DPIs
+            int btnWidth = 90;
+            int btnHeight = 32;
+
+            _btnAdd = new Button 
+            { 
+                Text = "Add...", 
+                AutoSize = false, 
+                Width = btnWidth, 
+                Height = btnHeight,
+                Margin = new Padding(0, 0, 8, 0) 
+            };
+            _btnRemove = new Button 
+            { 
+                Text = "Remove", 
+                AutoSize = false, 
+                Width = btnWidth, 
+                Height = btnHeight,
+                Margin = new Padding(0, 0, 16, 0) 
+            };
+            _btnClose = new Button 
+            { 
+                Text = "Close", 
+                AutoSize = false, 
+                Width = btnWidth, 
+                Height = btnHeight,
+                Margin = new Padding(0, 0, 0, 0)
+            };
 
             _btnAdd.Click += (s, e) => AddFolder();
             _btnRemove.Click += (s, e) => RemoveSelected();
@@ -79,10 +100,27 @@ namespace QDSVersionLauncher
 
             CancelButton = _btnClose;
 
-            // Add in reverse dock order: Fill -> Bottom -> Top
             Controls.Add(_listBox);
             Controls.Add(buttonPanel);
             Controls.Add(hint);
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            
+            if (this.Owner != null)
+            {
+                this.StartPosition = FormStartPosition.Manual;
+                
+                int offsetX = (this.Owner.Width - this.Width) / 2;
+                int offsetY = (this.Owner.Height - this.Height) / 2 - 40;
+                
+                if (offsetY < 0)
+                    offsetY = 0;
+                
+                this.Location = new Point(this.Owner.Left + offsetX, this.Owner.Top + offsetY);
+            }
         }
 
         private void PopulateList()
@@ -120,6 +158,30 @@ namespace QDSVersionLauncher
             _settings.CustomScanPaths.Remove(path);
             _settings.Save();
             PopulateList();
+        }
+
+        private static Icon TryLoadIcon()
+        {
+            try
+            {
+                // Extract the icon directly from the running executable itself.
+                // This works reliably even for single-file published EXEs where
+                // qdv.ico isn't physically present on disk next to the EXE.
+                string exePath = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+                    return Icon.ExtractAssociatedIcon(exePath);
+            }
+            catch
+            {
+                // Fallback to the old file-based method just in case.
+                try
+                {
+                    string iconPath = Path.Combine(AppContext.BaseDirectory, "qdv.ico");
+                    return File.Exists(iconPath) ? new Icon(iconPath) : null;
+                }
+                catch { }
+            }
+            return null;
         }
     }
 }

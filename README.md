@@ -31,13 +31,22 @@ sample.qsys
   locations.
 - **Shows every version found**, even 10+, in a scrollable list.
 - **Most recently used version is starred and pinned to the top.**
-- **Ctrl (or Shift) + double-click forces the picker to appear.** Normally,
-  if this exact project was opened with a specific version before,
+- **Configurable shortcut for forcing the picker to appear.** Normally, if
+  this exact project was opened with a specific version before,
   double-clicking it again launches straight into that version with no
-  dialog. Holding **Ctrl** while double-clicking skips that shortcut and
-  always shows the picker, so you can deliberately choose a different
-  version. Shift is checked too, but **Ctrl is the one to rely on** — see
-  Known limitations below for why Shift can be inconsistent.
+  dialog. The picker itself has a **"Show picker on:"** section where you
+  choose what skips that shortcut and forces the picker open: **Always**,
+  **Ctrl is held**, **Shift is held**, or **Ctrl + Shift are held**. The
+  choice is saved the moment you pick it — no separate save step. Default
+  is **Ctrl**, and it's the one to rely on — see Known limitations below
+  for why Shift can be inconsistent.
+- **Pin a project to always skip the picker.** Independent of the
+  **Show picker on:** mode above, the picker also has an "Always use this
+  version for this project" checkbox. Check it and click Open, and that
+  exact project will always launch straight into the selected version
+  from then on — even if the mode is set to **Always**. Holding Ctrl or
+  Shift on a later launch still forces the picker open for that project,
+  so the pin can be changed or removed.
 - **Portable.** Builds to a single, self-contained `.exe` — no installer,
   no separate .NET runtime to install, safe to run from a USB stick.
 - **Manage extra scan folders.** The **Manage Folders...** button opens a
@@ -77,7 +86,7 @@ QDSVersionLauncher/
 ├─ Launcher.cs                 Starts the chosen Designer.exe with the project file
 ├─ PluginSuppression.cs        "Suppress plugin folder" toggle (moves Plugins/Assets aside)
 ├─ FileAssociation.cs          Registers/unregisters the .qsys file association
-├─ app.ico                     App icon (original abstract design, generated for this project)
+├─ qdv.ico                     App icon (original abstract design, generated for this project)
 ├─ publish.bat                 Builds the portable single-file EXE
 ├─ register.bat / unregister.bat   Associate / un-associate .qsys with this tool
 └─ README.md
@@ -102,7 +111,7 @@ equivalent `dotnet publish` command inside it). The output
 
 ## Setting it up
 
-1. Put `QDSVersionLauncher.exe` (and `app.ico`, if you kept it alongside)
+1. Put `QDSVersionLauncher.exe` (and `qdv.ico`, if you kept it alongside)
    wherever you want it to live long-term.
 2. Run `register.bat` once. This makes `.qsys` files open through this
    launcher instead of a single fixed Designer version. It only touches
@@ -137,33 +146,36 @@ Stored as `settings.json`, either next to the EXE (portable mode, used
 whenever that folder is writable) or under
 `%AppData%\QDSVersionLauncher\settings.json` as a fallback (e.g. if the EXE
 lives in `Program Files`). It holds your custom scan paths, the known-LTS
-list, per-project remembered versions, the most-recently-used list, and the
-"Suppress plugin folder" checkbox state — feel free to hand-edit it if
-needed.
+list, per-project remembered versions, which projects are pinned to skip
+the picker, the most-recently-used list, the "Suppress plugin folder"
+checkbox state, and the "Show picker on" mode — feel free to hand-edit it
+if needed.
 
 - **Stale per-project entries are cleaned up automatically.** The
-  per-project remembered-version list would otherwise grow forever as
-  projects get renamed, moved, or deleted. Right before the picker is shown
-  (never on the fast, no-dialog launch path, so this can't add latency
-  there), the launcher checks — at most once every 7 days — whether each
-  remembered project file still exists, and drops the entries whose file is
-  gone. Entries on a network path (`\\server\share\...`) are left alone
-  rather than checked, since an unreachable share could otherwise make the
-  check hang.
+  per-project remembered-version and pinned-project lists would otherwise
+  grow forever as projects get renamed, moved, or deleted. Right before the
+  picker is shown (never on the fast, no-dialog launch path, so this can't
+  add latency there), the launcher checks — at most once every 7 days —
+  whether each remembered or pinned project file still exists, and drops
+  the entries whose file is gone. Entries on a network path
+  (`\\server\share\...`) are left alone rather than checked, since an
+  unreachable share could otherwise make the check hang.
 
 ## Known limitations
 
-- The Ctrl/Shift-held detection reads live keyboard state the instant the
-  process starts, since Explorer doesn't pass modifier keys to launched
-  programs. In practice this works fine for a normal double-click, but if
-  you release the key unusually fast it could occasionally be missed.
-- **Shift is checked, but isn't reliable — use Ctrl.** Windows Explorer
+- Whichever modifier-key mode you pick, the detection reads live keyboard
+  state the instant the process starts, since Explorer doesn't pass
+  modifier keys to launched programs. In practice this works fine for a
+  normal double-click, but if you release the key unusually fast it could
+  occasionally be missed. (This doesn't apply to the **Always** mode,
+  which doesn't look at the keyboard at all.)
+- **If you pick a Shift-based mode ("Shift is held" or "Ctrl + Shift are
+  held"), be aware Shift isn't fully reliable — Ctrl is.** Windows Explorer
   itself reserves Shift+click for extending a file selection, so a
   Shift-held double-click can get consumed by Explorer's own
   range-selection handling before it ever reaches this app, regardless of
   what the app's code checks for. Ctrl doesn't have that conflict and
-  reliably forces the picker; Shift is left in as a secondary option but
-  shouldn't be relied on.
+  reliably forces the picker, which is why it's the default.
 - Designed and tested for the common case of Designer installed under the
   default QSC folders; very unusual custom install setups may need a
   manual **Add folder...** the first time.
@@ -180,4 +192,6 @@ If you want to register the executable directly after building without using `re
 - **Author / Concept:** Created by Shogo Hori (assisted by AI collaboration).
 - **License:** Distributed under the [MIT License](LICENSE).
 
-This tool was generated and refined with AI assistance. It is provided "as is" without warranty of any kind. Please test and verify in your environment before using it in production.
+This tool was generated and refined with AI assistance.
+It is provided "as is" without warranty of any kind.
+Please test and verify in your environment before using it in production.

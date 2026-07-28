@@ -7,11 +7,6 @@ using System.Windows.Forms;
 
 namespace QDSVersionLauncher
 {
-    /// <summary>
-    /// The version-picker dialog shown when a .qsys file (or the EXE itself)
-    /// is double-clicked. Shows every detected Designer install, with the
-    /// most-recently-used one starred and pinned to the top.
-    /// </summary>
     public class MainForm : Form
     {
         private readonly string _projectPath;
@@ -27,9 +22,14 @@ namespace QDSVersionLauncher
         private Label _hintLabel;
         private CheckBox _chkSuppressPlugins;
         private Label _lblSuppressInfo;
-        // Guards CheckedChanged so setting Checked to reflect a loaded
-        // Settings value doesn't itself trigger a folder move.
         private bool _initializingSuppressCheckbox;
+        private CheckBox _chkPinProject;
+
+        // Shortcut selection RadioButtons
+        private RadioButton _rbShortcutAlways;
+        private RadioButton _rbShortcutCtrl;
+        private RadioButton _rbShortcutShift;
+        private RadioButton _rbShortcutCtrlShift;
 
         public MainForm(string projectPath, List<DesignerVersionInfo> versions, Settings settings, bool forceSelection = false)
         {
@@ -43,21 +43,28 @@ namespace QDSVersionLauncher
 
         private void BuildUi()
         {
-            // Enable DPI auto-scaling. AutoScaleDimensions is set to the design-time DPI (96).
             AutoScaleMode = AutoScaleMode.Dpi;
             AutoScaleDimensions = new SizeF(96f, 96f);
             Text = "Q-SYS Launcher";
             StartPosition = FormStartPosition.CenterScreen;
             
-            Width = Math.Max(320, _settings.WindowWidth);
-            Height = Math.Max(480, _settings.WindowHeight);
-            MinimumSize = new Size(320, 400);
+            // Minimum width must fit Refresh + Cancel + Open side-by-side
+            // without overlapping. At 96 DPI: panel padding (12+12) +
+            // Refresh (100 + 8 margin) + Cancel (100 + 8 margin) + Open
+            // (100) = 340px of content, plus buffer for window chrome.
+            const int MinFormWidth = 380;
+            // +40 over the old minimum to leave room for the new pin
+            // checkbox row without squeezing the list too small.
+            const int MinFormHeight = 440;
+            Width = Math.Max(MinFormWidth, _settings.WindowWidth);
+            Height = Math.Max(MinFormHeight, _settings.WindowHeight);
+            MinimumSize = new Size(MinFormWidth, MinFormHeight);
             
             Icon appIcon = TryLoadIcon();
             if (appIcon != null)
                 Icon = appIcon;
 
-            // --- Header: which project this is for ---
+            // --- Header ---
             var headerPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Top,
@@ -87,14 +94,14 @@ namespace QDSVersionLauncher
             headerPanel.Controls.Add(captionLabel, 0, 0);
             headerPanel.Controls.Add(projectLabel, 0, 1);
 
-            // --- Hint shown only when Ctrl forced this dialog to appear ---
+            // --- Hint ---
             _hintLabel = new Label
             {
                 Dock = DockStyle.Top,
                 AutoSize = true,
                 Padding = new Padding(12, 4, 12, 4),
                 ForeColor = Color.DarkOrange,
-                Text = "Ctrl held: choose a version manually.",
+                Text = GetHintText(),
                 Visible = _forceSelection
             };
 
@@ -113,41 +120,77 @@ namespace QDSVersionLauncher
             _listView.DoubleClick += (s, e) => OpenSelected();
             _listView.Resize += (s, e) => AutoSizeColumn();
 
-            // --- Bottom buttons ---
-            var buttonPanel = new TableLayoutPanel
+            // --- Pin this project to always use the selected version ---
+            var pinPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Bottom,
                 AutoSize = true,
-                ColumnCount = 4,
-                RowCount = 2,
-                Padding = new Padding(12, 8, 12, 12)
+                ColumnCount = 1,
+                RowCount = 1,
+                Padding = new Padding(12, 4, 12, 4)
             };
-            buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            buttonPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            buttonPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            pinPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            pinPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            _btnOpen = new Button { Text = "Open", AutoSize = true, Margin = new Padding(0, 0, 8, 8) };
-            _btnRefresh = new Button { Text = "Refresh", AutoSize = true, Margin = new Padding(0, 0, 8, 8) };
-            _btnCancel = new Button { Text = "Cancel", AutoSize = true, Margin = new Padding(0, 0, 0, 8) };
-            _btnManagePaths = new Button { Text = "Manage Folders...", AutoSize = true, Margin = new Padding(0, 0, 0, 0) };
+            _chkPinProject = new CheckBox
+            {
+                Text = "Always use this version for this project",
+                AutoSize = true,
+                Checked = _settings.IsProjectPinned(_projectPath),
+                Enabled = !string.IsNullOrEmpty(_projectPath),
+                Margin = new Padding(0)
+            };
+            var pinToolTip = new ToolTip();
+            pinToolTip.SetToolTip(_chkPinProject,
+                "Skips the picker next time this project is opened, launching straight " +
+                "into the version selected below. Hold Ctrl or Shift on the next launch " +
+                "to bring the picker back up and change it.");
+            pinPanel.Controls.Add(_chkPinProject, 0, 0);
 
-            _btnOpen.Click += (s, e) => OpenSelected();
-            _btnRefresh.Click += (s, e) => RefreshVersions();
-            _btnCancel.Click += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
-            _btnManagePaths.Click += (s, e) => OpenManagePaths();
+            // --- Shortcut Selection Panel (Above Suppress Plugin) ---
+            var shortcutPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                AutoSize = true,
+                ColumnCount = 1,
+                RowCount = 5,
+                Padding = new Padding(12, 8, 12, 8)
+            };
+            shortcutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            for (int i = 0; i < 5; i++)
+                shortcutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            buttonPanel.Controls.Add(_btnOpen, 0, 0);
-            buttonPanel.Controls.Add(_btnRefresh, 1, 0);
-            buttonPanel.Controls.Add(_btnCancel, 2, 0);
-            buttonPanel.Controls.Add(_btnManagePaths, 0, 1);
+            var lblShortcutTitle = new Label
+            {
+                Text = "Show picker on:",
+                AutoSize = true,
+                ForeColor = SystemColors.GrayText,
+                Margin = new Padding(0, 0, 0, 4)
+            };
+            shortcutPanel.Controls.Add(lblShortcutTitle, 0, 0);
 
-            AcceptButton = _btnOpen;
-            CancelButton = _btnCancel;
+            _rbShortcutAlways = new RadioButton { Text = "Always", AutoSize = true, Margin = new Padding(0, 2, 0, 2) };
+            _rbShortcutCtrl = new RadioButton { Text = "Ctrl is held", AutoSize = true, Margin = new Padding(0, 2, 0, 2) };
+            _rbShortcutShift = new RadioButton { Text = "Shift is held", AutoSize = true, Margin = new Padding(0, 2, 0, 2) };
+            _rbShortcutCtrlShift = new RadioButton { Text = "Ctrl + Shift are held", AutoSize = true, Margin = new Padding(0, 2, 0, 2) };
 
-            // --- Suppress-plugin-folder toggle: checkbox + description/paths ---
+            shortcutPanel.Controls.Add(_rbShortcutAlways, 0, 1);
+            shortcutPanel.Controls.Add(_rbShortcutCtrl, 0, 2);
+            shortcutPanel.Controls.Add(_rbShortcutShift, 0, 3);
+            shortcutPanel.Controls.Add(_rbShortcutCtrlShift, 0, 4);
+
+            // Wire up events to save immediately. Each radio button writes its
+            // mode straight to Settings.ForceSelectionMode and saves right
+            // away (no separate "Apply" step), same pattern as the suppress
+            // checkbox below.
+            _rbShortcutAlways.CheckedChanged += (s, e) => { if (_rbShortcutAlways.Checked) { _settings.ForceSelectionMode = 0; _settings.Save(); UpdateHintLabel(); } };
+            _rbShortcutCtrl.CheckedChanged += (s, e) => { if (_rbShortcutCtrl.Checked) { _settings.ForceSelectionMode = 1; _settings.Save(); UpdateHintLabel(); } };
+            _rbShortcutShift.CheckedChanged += (s, e) => { if (_rbShortcutShift.Checked) { _settings.ForceSelectionMode = 2; _settings.Save(); UpdateHintLabel(); } };
+            _rbShortcutCtrlShift.CheckedChanged += (s, e) => { if (_rbShortcutCtrlShift.Checked) { _settings.ForceSelectionMode = 3; _settings.Save(); UpdateHintLabel(); } };
+
+            SetShortcutRadioButtons();
+
+            // --- Suppress-plugin-folder toggle ---
             var suppressPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Bottom,
@@ -186,26 +229,97 @@ namespace QDSVersionLauncher
             suppressPanel.Controls.Add(_chkSuppressPlugins, 0, 0);
             suppressPanel.Controls.Add(_lblSuppressInfo, 0, 1);
 
-            // Reflect the saved state without triggering a folder move --
-            // Program.cs already reconciled the actual folders at startup.
             _initializingSuppressCheckbox = true;
             _chkSuppressPlugins.Checked = _settings.SuppressPlugins;
             _initializingSuppressCheckbox = false;
             _chkSuppressPlugins.CheckedChanged += (s, e) => OnSuppressPluginsCheckedChanged();
 
-            // Add controls in reverse dock order (Fill -> Bottom -> Top(inner) -> Top(outer))
+            // --- Bottom buttons ---
+            int btnWidth = 100;
+            var buttonPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                AutoSize = true,
+                ColumnCount = 4,
+                RowCount = 2,
+                Padding = new Padding(12, 8, 12, 12)
+            };
+            buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Col 0: Left
+            buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // Col 1: Spacer
+            buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Col 2: Right
+            buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Col 3: Right
+            buttonPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            buttonPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            _btnRefresh = new Button { Text = "Refresh", Width = btnWidth, Margin = new Padding(0, 0, 8, 8) };
+            _btnCancel = new Button { Text = "Cancel", Width = btnWidth, Margin = new Padding(0, 0, 8, 8) };
+            _btnOpen = new Button { Text = "Open", Width = btnWidth, Margin = new Padding(0, 0, 0, 8) };
+            _btnManagePaths = new Button { Text = "Manage Folders...", Width = btnWidth, Margin = new Padding(0, 0, 0, 0) };
+
+            _btnRefresh.Click += (s, e) => RefreshVersions();
+            _btnCancel.Click += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
+            _btnOpen.Click += (s, e) => OpenSelected();
+            _btnManagePaths.Click += (s, e) => OpenManagePaths();
+
+            buttonPanel.Controls.Add(_btnRefresh, 0, 0);
+            buttonPanel.Controls.Add(_btnCancel, 2, 0);
+            buttonPanel.Controls.Add(_btnOpen, 3, 0);
+            buttonPanel.Controls.Add(_btnManagePaths, 0, 1);
+
+            AcceptButton = _btnOpen;
+            CancelButton = _btnCancel;
+
             Controls.Add(_listView);
+            Controls.Add(pinPanel);
+            Controls.Add(shortcutPanel);
             Controls.Add(suppressPanel);
             Controls.Add(buttonPanel);
             Controls.Add(_hintLabel);
             Controls.Add(headerPanel);
 
-            // High DPI fix for ListView item height
             float scaleFactorY = CurrentAutoScaleDimensions.Height / 96f;
             _listView.SmallImageList = new ImageList 
             { 
                 ImageSize = new Size(1, (int)(16 * scaleFactorY)) 
             };
+        }
+
+        private string GetShortcutDisplayText()
+        {
+            switch (_settings.ForceSelectionMode)
+            {
+                case 0: return ""; // Always
+                case 1: return "Ctrl";
+                case 2: return "Shift";
+                case 3: return "Ctrl + Shift";
+                default: return "Ctrl";
+            }
+        }
+
+        private string GetHintText()
+        {
+            string shortcutText = GetShortcutDisplayText();
+            return string.IsNullOrEmpty(shortcutText) 
+                ? "Always showing version picker." 
+                : $"{shortcutText} held: choose a version manually.";
+        }
+
+        private void UpdateHintLabel()
+        {
+            _hintLabel.Text = GetHintText();
+        }
+
+        private void SetShortcutRadioButtons()
+        {
+            int mode = _settings.ForceSelectionMode;
+            _rbShortcutAlways.Checked = (mode == 0);
+            _rbShortcutCtrl.Checked = (mode == 1);
+            _rbShortcutShift.Checked = (mode == 2);
+            _rbShortcutCtrlShift.Checked = (mode == 3);
+            
+            // Fallback for invalid values
+            if (!_rbShortcutAlways.Checked && !_rbShortcutCtrl.Checked && !_rbShortcutShift.Checked && !_rbShortcutCtrlShift.Checked)
+                _rbShortcutCtrl.Checked = true;
         }
 
         private void PopulateList()
@@ -264,6 +378,7 @@ namespace QDSVersionLauncher
             }
 
             _settings.SetRememberedVersion(_projectPath, info.Version);
+            _settings.SetProjectPinned(_projectPath, _chkPinProject.Checked);
             _settings.Save();
             DialogResult = DialogResult.OK;
             Close();
@@ -318,6 +433,11 @@ namespace QDSVersionLauncher
         private void OpenManagePaths()
         {
             using var dialog = new ManagePathsForm(_settings);
+            
+            // Force the dialog to open at the same top-left position as the main form
+            dialog.StartPosition = FormStartPosition.Manual;
+            dialog.Location = new Point(this.Left, this.Top);
+            
             dialog.ShowDialog(this);
             RefreshVersions();
         }
@@ -326,13 +446,24 @@ namespace QDSVersionLauncher
         {
             try
             {
-                string iconPath = Path.Combine(AppContext.BaseDirectory, "qdv.ico");
-                return File.Exists(iconPath) ? new Icon(iconPath) : null;
+                // Extract the icon directly from the running executable itself.
+                // This works reliably even for single-file published EXEs where
+                // qdv.ico isn't physically present on disk next to the EXE.
+                string exePath = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+                    return Icon.ExtractAssociatedIcon(exePath);
             }
             catch
             {
-                return null;
+                // Fallback to the old file-based method just in case.
+                try
+                {
+                    string iconPath = Path.Combine(AppContext.BaseDirectory, "qdv.ico");
+                    return File.Exists(iconPath) ? new Icon(iconPath) : null;
+                }
+                catch { }
             }
+            return null;
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
