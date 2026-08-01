@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace QDSVersionLauncher
@@ -24,6 +25,7 @@ namespace QDSVersionLauncher
         private Label _lblSuppressInfo;
         private bool _initializingSuppressCheckbox;
         private CheckBox _chkPinProject;
+        private Label _lblVersion;
 
         // Shortcut selection RadioButtons
         private RadioButton _rbShortcutAlways;
@@ -47,19 +49,19 @@ namespace QDSVersionLauncher
             AutoScaleDimensions = new SizeF(96f, 96f);
             Text = "Q-SYS Launcher";
             StartPosition = FormStartPosition.CenterScreen;
-            
+
             // Minimum width must fit Refresh + Cancel + Open side-by-side
             // without overlapping. At 96 DPI: panel padding (12+12) +
             // Refresh (100 + 8 margin) + Cancel (100 + 8 margin) + Open
             // (100) = 340px of content, plus buffer for window chrome.
             const int MinFormWidth = 380;
-            // +40 over the old minimum to leave room for the new pin
-            // checkbox row without squeezing the list too small.
-            const int MinFormHeight = 440;
+            // +40 over the old minimum for the pin checkbox row, and another
+            // +20 on top of that for the version label row at the very bottom.
+            const int MinFormHeight = 500;
             Width = Math.Max(MinFormWidth, _settings.WindowWidth);
             Height = Math.Max(MinFormHeight, _settings.WindowHeight);
             MinimumSize = new Size(MinFormWidth, MinFormHeight);
-            
+
             Icon appIcon = TryLoadIcon();
             if (appIcon != null)
                 Icon = appIcon;
@@ -213,7 +215,7 @@ namespace QDSVersionLauncher
             suppressToolTip.SetToolTip(_chkSuppressPlugins,
                 "While checked, Designer's Plugins and Assets folders are moved out of the way " +
                 "(a temporary safe mode with no custom content loaded). Unchecking moves them back.");
-            
+
             _lblSuppressInfo = new Label
             {
                 AutoSize = true,
@@ -256,24 +258,54 @@ namespace QDSVersionLauncher
             _btnOpen = new Button { Text = "Open", Width = btnWidth, Margin = new Padding(0, 0, 0, 8) };
             _btnManagePaths = new Button { Text = "Manage Folders...", Width = btnWidth, Margin = new Padding(0, 0, 0, 0) };
 
+            // Lets a user un-associate .qsys files (same effect as unregister.bat)
+            // without having to go find the batch file, e.g. right before
+            // deleting/uninstalling the app.
+            var btnCleanRegistry = new Button { Text = "Clean Registry", Width = btnWidth, Margin = new Padding(0, 0, 8, 0) };
+
             _btnRefresh.Click += (s, e) => RefreshVersions();
             _btnCancel.Click += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
             _btnOpen.Click += (s, e) => OpenSelected();
             _btnManagePaths.Click += (s, e) => OpenManagePaths();
 
+            btnCleanRegistry.Click += (s, e) => {
+                FileAssociation.Unregister();
+                MessageBox.Show("Registry cleaned. You can safely delete the app.", "Clean Registry", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            };
+
             buttonPanel.Controls.Add(_btnRefresh, 0, 0);
             buttonPanel.Controls.Add(_btnCancel, 2, 0);
             buttonPanel.Controls.Add(_btnOpen, 3, 0);
             buttonPanel.Controls.Add(_btnManagePaths, 0, 1);
+            // Place under Cancel button
+            buttonPanel.Controls.Add(btnCleanRegistry, 2, 1);
 
             AcceptButton = _btnOpen;
             CancelButton = _btnCancel;
+
+            // --- Version label (very bottom-right corner) ---
+            // Shows the app's own version, read from assembly metadata (which
+            // the .NET SDK derives from <Version> in the .csproj). To bump the
+            // displayed version later, just change that one property -- no
+            // other code needs to change.
+            _lblVersion = new Label
+            {
+                Dock = DockStyle.Bottom,
+                AutoSize = false,
+                Height = 18,
+                TextAlign = ContentAlignment.MiddleRight,
+                Padding = new Padding(0, 0, 12, 0),
+                ForeColor = SystemColors.GrayText,
+                Font = new Font(Font.FontFamily, 7.5f),
+                Text = GetVersionText()
+            };
 
             Controls.Add(_listView);
             Controls.Add(pinPanel);
             Controls.Add(shortcutPanel);
             Controls.Add(suppressPanel);
             Controls.Add(buttonPanel);
+            Controls.Add(_lblVersion);
             Controls.Add(_hintLabel);
             Controls.Add(headerPanel);
 
@@ -316,7 +348,7 @@ namespace QDSVersionLauncher
             _rbShortcutCtrl.Checked = (mode == 1);
             _rbShortcutShift.Checked = (mode == 2);
             _rbShortcutCtrlShift.Checked = (mode == 3);
-            
+
             // Fallback for invalid values
             if (!_rbShortcutAlways.Checked && !_rbShortcutCtrl.Checked && !_rbShortcutShift.Checked && !_rbShortcutCtrlShift.Checked)
                 _rbShortcutCtrl.Checked = true;
@@ -433,11 +465,11 @@ namespace QDSVersionLauncher
         private void OpenManagePaths()
         {
             using var dialog = new ManagePathsForm(_settings);
-            
+
             // Force the dialog to open at the same top-left position as the main form
             dialog.StartPosition = FormStartPosition.Manual;
             dialog.Location = new Point(this.Left, this.Top);
-            
+
             dialog.ShowDialog(this);
             RefreshVersions();
         }
@@ -446,24 +478,39 @@ namespace QDSVersionLauncher
         {
             try
             {
-                // Extract the icon directly from the running executable itself.
-                // This works reliably even for single-file published EXEs where
-                // qdv.ico isn't physically present on disk next to the EXE.
+                // Prefer app.ico next to the EXE; fallback to extracting from the EXE itself.
+                string appIconPath = Path.Combine(AppContext.BaseDirectory, "app.ico");
+                if (File.Exists(appIconPath))
+                    return new Icon(appIconPath);
+
                 string exePath = Environment.ProcessPath;
                 if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
                     return Icon.ExtractAssociatedIcon(exePath);
             }
             catch
             {
-                // Fallback to the old file-based method just in case.
+                // Final fallback
                 try
                 {
-                    string iconPath = Path.Combine(AppContext.BaseDirectory, "qdv.ico");
-                    return File.Exists(iconPath) ? new Icon(iconPath) : null;
+                    string legacyIconPath = Path.Combine(AppContext.BaseDirectory, "qdv.ico");
+                    return File.Exists(legacyIconPath) ? new Icon(legacyIconPath) : null;
                 }
                 catch { }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Reads the app's own version from assembly metadata, which the .NET
+        /// SDK derives automatically from &lt;Version&gt; in the .csproj (e.g.
+        /// "1.0.1" there becomes an assembly version of 1.0.1.0). Shown in the
+        /// picker's bottom-right corner so a build can be identified at a
+        /// glance, e.g. when reporting an issue.
+        /// </summary>
+        private static string GetVersionText()
+        {
+            Version version = Assembly.GetExecutingAssembly().GetName().Version;
+            return version == null ? string.Empty : $"ver{version.Major}.{version.Minor}.{version.Build}";
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)

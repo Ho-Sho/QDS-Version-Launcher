@@ -11,15 +11,22 @@
     <Product>QDS Version Launcher</Product>
     <RootNamespace>QDSVersionLauncher</RootNamespace>
     <AssemblyName>QDSVersionLauncher</AssemblyName>
-    <ApplicationIcon>qdv.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Version>1.0.1</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- For the portable, self contained single file build, run publish.bat
-         (see README.md for the full dotnet publish command it wraps). -->
+    <PublishDir>$(OutputPath)</PublishDir>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="qdv.ico" />
+    <!-- app.ico is embedded into the EXE via ApplicationIcon above, and also
+         copied next to the EXE so MainForm/ManagePathsForm can load it
+         directly at runtime (see TryLoadIcon). -->
+    <None Include="app.ico" CopyToOutputDirectory="PreserveNewest" />
+    <!-- qsys.ico is the separate icon used for the .qsys file association
+         (see FileAssociation.Register). Must be copied to the output/publish
+         folder, otherwise File.Exists() there always fails and the file-type
+         icon silently falls back to the EXE's own icon. -->
+    <None Include="qsys.ico" CopyToOutputDirectory="PreserveNewest" Condition="Exists('qsys.ico')" />
   </ItemGroup>
 
 </Project>

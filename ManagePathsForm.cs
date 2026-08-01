@@ -25,7 +25,7 @@ namespace QDSVersionLauncher
             AutoScaleMode = AutoScaleMode.Dpi;
             AutoScaleDimensions = new SizeF(96f, 96f);
             Text = "Manage Search Folders";
-            
+
             Icon appIcon = TryLoadIcon();
             if (appIcon != null)
                 Icon = appIcon;
@@ -108,17 +108,17 @@ namespace QDSVersionLauncher
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-            
+
             if (this.Owner != null)
             {
                 this.StartPosition = FormStartPosition.Manual;
-                
+
                 int offsetX = (this.Owner.Width - this.Width) / 2;
                 int offsetY = (this.Owner.Height - this.Height) / 2 - 40;
-                
+
                 if (offsetY < 0)
                     offsetY = 0;
-                
+
                 this.Location = new Point(this.Owner.Left + offsetX, this.Owner.Top + offsetY);
             }
         }
@@ -164,20 +164,22 @@ namespace QDSVersionLauncher
         {
             try
             {
-                // Extract the icon directly from the running executable itself.
-                // This works reliably even for single-file published EXEs where
-                // qdv.ico isn't physically present on disk next to the EXE.
+                // Prefer app.ico next to the EXE; fallback to extracting from the EXE itself.
+                string appIconPath = Path.Combine(AppContext.BaseDirectory, "app.ico");
+                if (File.Exists(appIconPath))
+                    return new Icon(appIconPath);
+
                 string exePath = Environment.ProcessPath;
                 if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
                     return Icon.ExtractAssociatedIcon(exePath);
             }
             catch
             {
-                // Fallback to the old file-based method just in case.
+                // Final fallback
                 try
                 {
-                    string iconPath = Path.Combine(AppContext.BaseDirectory, "qdv.ico");
-                    return File.Exists(iconPath) ? new Icon(iconPath) : null;
+                    string legacyIconPath = Path.Combine(AppContext.BaseDirectory, "qdv.ico");
+                    return File.Exists(legacyIconPath) ? new Icon(legacyIconPath) : null;
                 }
                 catch { }
             }
